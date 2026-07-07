@@ -1,0 +1,36 @@
+{
+  "name": "pi-claude-addons",
+  "version": "1.0.0",
+  "description": "Claude Code-inspired addons for Pi.",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "claude-code",
+    "paste",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/bugo/pi-claude-addons#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bugo/pi-claude-addons.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bugo/pi-claude-addons/issues"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  },
+  "files": [
+    "extensions",
+    "README.md",
+    "LICENSE"
+  ]
+}
