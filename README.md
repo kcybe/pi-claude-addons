@@ -1,14 +1,66 @@
 # pi-claude-addons
 
-Claude Code-inspired addons for [Pi](https://pi.dev/).
+Claude Code-inspired quality-of-life extensions for [Pi](https://pi.dev/).
 
-This package is meant to collect small Pi extensions that make Pi feel closer to Claude Code while keeping each behavior easy to inspect and disable.
+This package adds a few familiar CLI behaviors while staying small, inspectable, and easy to remove.
 
-## Included extensions
+## Install
 
-### `repeat-paste-expand`
+```bash
+pi install npm:pi-claude-addons
+```
 
-Claude Code-style repeated large-paste expansion.
+Restart Pi, or run `/reload` in an existing Pi session after installing/updating.
+
+## Features
+
+### `/cd <path>`
+
+Move the current Pi session to another working directory without restarting Pi.
+
+```bash
+/cd ..
+/cd ../another-repo
+/cd ~/src/project
+/cd "/path/with spaces"
+```
+
+What it does:
+
+- Validates that the target exists and is a directory
+- Preserves the current conversation by relocating it into the target directory's Pi session storage
+- Switches Pi so future file and shell operations use the new working directory
+- Adds a short context note so the assistant knows the working directory changed
+- Supports directory autocompletion, `~`, `..`, relative paths, absolute paths, and paths with spaces
+
+This is modeled after Claude Code's `/cd <path>` behavior: move the session root rather than merely granting access to an extra folder.
+
+### `/effort`
+
+Set Pi's thinking level with a Claude Code-style effort selector.
+
+```bash
+/effort
+/effort off
+/effort medium
+/effort high
+/effort xhigh
+```
+
+Running `/effort` with no argument opens an interactive Faster → Smarter selector. Supported levels are:
+
+- `off`
+- `minimal`
+- `low`
+- `medium`
+- `high`
+- `xhigh`
+
+Pi may clamp the requested value if the current model does not support that thinking level.
+
+### Repeated large-paste expansion
+
+A Claude Code-style paste helper for large blocks of text.
 
 Behavior:
 
@@ -16,35 +68,6 @@ Behavior:
 - Paste the same text again: the marker expands into the full pasted text
 - Press `ctrl+c` to clear the editor: the cycle resets
 - Paste the same text after clearing: it is compacted again, then expands on the next same paste
-
-### `/effort`
-
-Claude Code-style effort selector for Pi thinking levels.
-
-Usage:
-
-```bash
-/effort
-/effort off
-/effort medium
-/effort high
-```
-
-The interactive selector uses a horizontal Faster → Smarter scale and maps to Pi thinking levels: `off`, `minimal`, `low`, `medium`, `high`, and `xhigh`. Pi may clamp the requested value when the current model does not support that level.
-
-## Install
-
-After this package is published to npm:
-
-```bash
-pi install npm:pi-claude-addons
-```
-
-If published under an npm scope:
-
-```bash
-pi install npm:@your-npm-username/pi-claude-addons
-```
 
 ## Local development
 
@@ -54,7 +77,7 @@ From this repository:
 pi -e .
 ```
 
-or install locally:
+Or install the local checkout:
 
 ```bash
 pi install .
@@ -62,25 +85,14 @@ pi install .
 
 After changing extension files, run `/reload` inside Pi.
 
-## Publishing
-
-```bash
-npm login
-npm publish --access public
-```
-
-If the unscoped npm name is taken, change the package name in `package.json` to a scoped package such as:
-
-```json
-"name": "@your-npm-username/pi-claude-addons"
-```
-
-then publish with:
-
-```bash
-npm publish --access public
-```
-
-## Security note
+## Security
 
 Pi extensions execute with your local user permissions. Review extension code before installing any third-party Pi package.
+
+## Publishing
+
+For maintainers:
+
+```bash
+npm publish --access public
+```
