@@ -58,6 +58,29 @@ Running `/effort` with no argument opens an interactive Faster → Smarter selec
 
 Pi may clamp the requested value if the current model does not support that thinking level.
 
+### `/loop`
+
+Run a task repeatedly until Pi truthfully signals completion.
+
+```bash
+/loop <task>
+/loop --max 25 <task>
+/loop
+/loop status
+/loop stop
+/cancel-loop
+```
+
+How it works:
+
+- Starts an autonomous continuation loop for the current Pi session
+- Stores loop state in `.pi/loop.local.md`
+- Auto-continues after each assistant turn until the assistant outputs `<promise>DONE</promise>`
+- Stops at the configured max iteration count, defaulting to 100
+- Bare `/loop` uses `.pi/loop.md`, then `~/.pi/agent/loop.md`, then a built-in maintenance prompt
+
+Only output `<promise>DONE</promise>` when the task is completely and verifiably finished.
+
 ### Claude-style line cursor
 
 Use a vertical line cursor in Pi's editor instead of Pi's default fake block cursor.
