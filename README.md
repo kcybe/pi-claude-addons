@@ -60,24 +60,33 @@ Pi may clamp the requested value if the current model does not support that thin
 
 ### `/loop`
 
-Run a task repeatedly until Pi truthfully signals completion.
+Run a task until completion, or repeat a prompt on an interval for monitoring.
 
 ```bash
-/loop <task>
-/loop --max 25 <task>
-/loop
+/loop <task>                 # work-until-done mode
+/loop --max 25 <task>        # cap continuation iterations
+/loop 5m <task>              # timed mode
+/loop every 2 hours <task>   # timed mode, natural interval syntax
+/loop                        # use .pi/loop.md, ~/.pi/agent/loop.md, or built-in maintenance
 /loop status
 /loop stop
 /cancel-loop
 ```
 
+Work-until-done mode starts immediately and auto-continues after each assistant turn until Pi sees the assistant output:
+
+```text
+<promise>DONE</promise>
+```
+
+Timed mode starts immediately, then waits the interval and re-runs the prompt until stopped, max iterations are reached, or the assistant outputs the completion promise.
+
 How it works:
 
-- Starts an autonomous continuation loop for the current Pi session
 - Stores loop state in `.pi/loop.local.md`
-- Auto-continues after each assistant turn until the assistant outputs `<promise>DONE</promise>`
+- Supports relative default prompts with `.pi/loop.md` and user default prompts with `~/.pi/agent/loop.md`
 - Stops at the configured max iteration count, defaulting to 100
-- Bare `/loop` uses `.pi/loop.md`, then `~/.pi/agent/loop.md`, then a built-in maintenance prompt
+- Restores pending timed loop wakeups on `/reload` while the same Pi session is open
 
 Only output `<promise>DONE</promise>` when the task is completely and verifiably finished.
 
