@@ -58,6 +58,18 @@ Running `/effort` with no argument opens an interactive Faster → Smarter selec
 
 Pi may clamp the requested value if the current model does not support that thinking level.
 
+### Claude-style line cursor
+
+Use a vertical line cursor in Pi's editor instead of Pi's default fake block cursor.
+
+```bash
+/cursor
+/cursor line
+/cursor block
+```
+
+The line cursor is enabled by default when the extension loads. Use `/cursor block` if you want to temporarily return to block cursor behavior.
+
 ### Repeated large-paste expansion
 
 A Claude Code-style paste helper for large blocks of text.
