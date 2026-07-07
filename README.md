@@ -17,6 +17,21 @@ Behavior:
 - Press `ctrl+c` to clear the editor: the cycle resets
 - Paste the same text after clearing: it is compacted again, then expands on the next same paste
 
+### `/effort`
+
+Claude Code-style effort selector for Pi thinking levels.
+
+Usage:
+
+```bash
+/effort
+/effort off
+/effort medium
+/effort high
+```
+
+The interactive selector uses a horizontal Faster → Smarter scale and maps to Pi thinking levels: `off`, `minimal`, `low`, `medium`, `high`, and `xhigh`. Pi may clamp the requested value when the current model does not support that level.
+
 ## Install
 
 After this package is published to npm:
