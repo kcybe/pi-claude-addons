@@ -98,6 +98,17 @@ class ImagePlaceholderEditor extends CustomEditor {
     this.replaceVisibleImagePaths();
   }
 
+  handlePaste(pastedText: string): void {
+    const imagePath = imagePathFromPaste(pastedText);
+    if (imagePath) {
+      this.insertPlaceholder(imagePath);
+      return;
+    }
+
+    super.handlePaste(pastedText);
+    this.replaceVisibleImagePaths();
+  }
+
   insertTextAtCursor(text: string): void {
     const imagePath = imagePathFromPaste(text);
     if (!imagePath) {
