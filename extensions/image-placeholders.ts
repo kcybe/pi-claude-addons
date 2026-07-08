@@ -111,7 +111,7 @@ class ImagePlaceholderEditor extends CustomEditor {
 
   private insertPlaceholder(path: string): void {
     const record = this.tracker.getOrCreate(path);
-    super.insertTextAtCursor(record.placeholder);
+    super.insertTextAtCursor(`${record.placeholder} `);
   }
 
   private replaceVisibleImagePaths(): void {
@@ -192,8 +192,9 @@ function findPlaceholderSpan(line: string, cursor: number, direction: 'backward'
   for (const match of line.matchAll(IMAGE_PLACEHOLDER_PATTERN)) {
     const start = match.index;
     const end = start + match[0].length;
-    if (direction === 'backward' && start < cursor && cursor <= end) return { start, end };
-    if (direction === 'forward' && start <= cursor && cursor < end) return { start, end };
+    const deleteEnd = line[end] === ' ' ? end + 1 : end;
+    if (direction === 'backward' && start < cursor && cursor <= deleteEnd) return { start, end: deleteEnd };
+    if (direction === 'forward' && start <= cursor && cursor < end) return { start, end: deleteEnd };
   }
   return undefined;
 }
@@ -363,7 +364,7 @@ function replaceRawImagePaths(text: string, tracker: ImageTracker): { text: stri
   for (const match of matches) {
     const record = tracker.getOrCreate(match.path);
     transformed += text.slice(cursor, match.start);
-    transformed += record.placeholder;
+    transformed += `${record.placeholder} `;
     cursor = match.end;
 
     if (!seen.has(record.path)) {
