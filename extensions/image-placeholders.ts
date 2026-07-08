@@ -85,7 +85,16 @@ class ImagePlaceholderEditor extends CustomEditor {
     if (matchesKey(data, Key.backspace) && this.deletePlaceholderBackward()) return;
     if (matchesKey(data, Key.delete) && this.deletePlaceholderForward()) return;
 
+    if (matchesKey(data, Key.left) && this.snapCursorOutOfPlaceholder('start')) return;
+    if (matchesKey(data, Key.right) && this.snapCursorOutOfPlaceholder('end')) return;
+    if (isLikelyPrintableInput(data)) this.snapCursorOutOfPlaceholder('end');
+
     super.handleInput(data);
+
+    if (matchesKey(data, Key.left)) this.snapCursorOutOfPlaceholder('start');
+    else if (matchesKey(data, Key.right)) this.snapCursorOutOfPlaceholder('end');
+    else this.snapCursorOutOfPlaceholder('nearest');
+
     this.replaceVisibleImagePaths();
   }
 
@@ -143,12 +152,40 @@ class ImagePlaceholderEditor extends CustomEditor {
     const lineIndex = internals.state.cursorLine;
     const line = internals.state.lines[lineIndex] ?? '';
     internals.state.lines[lineIndex] = line.slice(0, start) + line.slice(end);
-    if (internals.setCursorCol) internals.setCursorCol(start);
-    else internals.state.cursorCol = start;
+    setEditorCursorCol(internals, start);
 
     this.onChange?.(this.getText());
     this.invalidate();
   }
+
+  private snapCursorOutOfPlaceholder(prefer: 'start' | 'end' | 'nearest'): boolean {
+    const internals = this as unknown as MutableEditorInternals;
+    const line = internals.state.lines[internals.state.cursorLine] ?? '';
+    const cursor = internals.state.cursorCol;
+    const span = findPlaceholderSpanContaining(line, cursor);
+    if (!span) return false;
+
+    const target =
+      prefer === 'start'
+        ? span.start
+        : prefer === 'end'
+          ? span.end
+          : cursor - span.start <= span.end - cursor
+            ? span.start
+            : span.end;
+    setEditorCursorCol(internals, target);
+    this.invalidate();
+    return true;
+  }
+}
+
+function setEditorCursorCol(internals: MutableEditorInternals, col: number): void {
+  if (internals.setCursorCol) internals.setCursorCol(col);
+  else internals.state.cursorCol = col;
+}
+
+function isLikelyPrintableInput(data: string): boolean {
+  return data.length > 0 && !data.startsWith('\x1b') && data !== '\x7f' && !/^[\x00-\x1f]$/.test(data);
 }
 
 function findPlaceholderSpan(line: string, cursor: number, direction: 'backward' | 'forward'): { start: number; end: number } | undefined {
@@ -157,6 +194,15 @@ function findPlaceholderSpan(line: string, cursor: number, direction: 'backward'
     const end = start + match[0].length;
     if (direction === 'backward' && start < cursor && cursor <= end) return { start, end };
     if (direction === 'forward' && start <= cursor && cursor < end) return { start, end };
+  }
+  return undefined;
+}
+
+function findPlaceholderSpanContaining(line: string, cursor: number): { start: number; end: number } | undefined {
+  for (const match of line.matchAll(IMAGE_PLACEHOLDER_PATTERN)) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (start < cursor && cursor < end) return { start, end };
   }
   return undefined;
 }
