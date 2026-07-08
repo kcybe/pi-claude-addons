@@ -38,6 +38,25 @@ What it does:
 
 The package also registers `/review` as a short alias for PR or target review.
 
+### Claude-style image placeholders
+
+When you paste an image with Pi's image-paste keybinding, the editor now inserts a Claude Code-style placeholder instead of the temporary image path:
+
+```text
+[Image #1]
+[Image #2]
+```
+
+What it does:
+
+- Keeps incrementing placeholders for pasted images during the session
+- Hides local temporary image paths from the editor
+- Sends the corresponding image attachments with the next prompt
+- Also converts readable raw image paths in submitted text into placeholders when possible
+- Supports PNG, JPEG, GIF, and WebP files
+
+This follows Claude Code's image UX: paths are an implementation detail; the prompt shows numbered image attachments.
+
 ### `/simplify [target]`
 
 Review changed code for cleanup opportunities and apply safe fixes, modeled on Claude Code's current `/simplify` behavior.
