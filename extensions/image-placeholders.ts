@@ -208,7 +208,6 @@ function findPlaceholderSpan(line: string, cursor: number, direction: 'backward'
   }
   return undefined;
 }
-}
 
 function findPlaceholderSpanContaining(line: string, cursor: number): { start: number; end: number } | undefined {
   for (const match of line.matchAll(IMAGE_PLACEHOLDER_PATTERN)) {
