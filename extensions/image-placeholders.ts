@@ -192,11 +192,11 @@ function findPlaceholderSpan(line: string, cursor: number, direction: 'backward'
   for (const match of line.matchAll(IMAGE_PLACEHOLDER_PATTERN)) {
     const start = match.index;
     const end = start + match[0].length;
-    const deleteEnd = line[end] === ' ' ? end + 1 : end;
-    if (direction === 'backward' && start < cursor && cursor <= deleteEnd) return { start, end: deleteEnd };
-    if (direction === 'forward' && start <= cursor && cursor < end) return { start, end: deleteEnd };
+    if (direction === 'backward' && start < cursor && cursor <= end) return { start, end };
+    if (direction === 'forward' && start <= cursor && cursor < end) return { start, end };
   }
   return undefined;
+}
 }
 
 function findPlaceholderSpanContaining(line: string, cursor: number): { start: number; end: number } | undefined {
