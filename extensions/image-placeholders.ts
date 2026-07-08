@@ -1,5 +1,5 @@
 import { CustomEditor, type ExtensionAPI, type KeybindingsManager } from '@earendil-works/pi-coding-agent';
-import { Key, matchesKey, type EditorTheme, type TUI } from '@earendil-works/pi-tui';
+import { getKeybindings, Key, matchesKey, type EditorTheme, type TUI } from '@earendil-works/pi-tui';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -89,10 +89,16 @@ class ImagePlaceholderEditor extends CustomEditor {
     if (matchesKey(data, Key.right) && this.snapCursorOutOfPlaceholder('end')) return;
     if (isLikelyPrintableInput(data)) this.snapCursorOutOfPlaceholder('end');
 
+    const kb = getKeybindings();
+    const isWordLeft = kb.matches(data, 'tui.editor.cursorWordLeft');
+    const isWordRight = kb.matches(data, 'tui.editor.cursorWordRight');
+    if (isWordLeft) this.snapCursorOutOfPlaceholder('start');
+    if (isWordRight) this.snapCursorOutOfPlaceholder('end');
+
     super.handleInput(data);
 
-    if (matchesKey(data, Key.left)) this.snapCursorOutOfPlaceholder('start');
-    else if (matchesKey(data, Key.right)) this.snapCursorOutOfPlaceholder('end');
+    if (matchesKey(data, Key.left) || isWordLeft) this.snapCursorOutOfPlaceholder('start');
+    else if (matchesKey(data, Key.right) || isWordRight) this.snapCursorOutOfPlaceholder('end');
     else this.snapCursorOutOfPlaceholder('nearest');
 
     this.replaceVisibleImagePaths();
