@@ -1,5 +1,5 @@
 import { CustomEditor, type ExtensionAPI, type KeybindingsManager } from '@earendil-works/pi-coding-agent';
-import type { EditorTheme, TUI } from '@earendil-works/pi-tui';
+import { Key, matchesKey, type EditorTheme, type TUI } from '@earendil-works/pi-tui';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -23,6 +23,19 @@ type ImagePathMatch = {
   start: number;
   end: number;
   path: string;
+};
+
+type MutableEditorInternals = {
+  state: {
+    lines: string[];
+    cursorLine: number;
+    cursorCol: number;
+  };
+  cancelAutocomplete?: () => void;
+  pushUndoSnapshot?: () => void;
+  exitHistoryBrowsing?: () => void;
+  setCursorCol?: (col: number) => void;
+  lastAction?: unknown;
 };
 
 class ImageTracker {
@@ -69,6 +82,9 @@ class ImagePlaceholderEditor extends CustomEditor {
       return;
     }
 
+    if (matchesKey(data, Key.backspace) && this.deletePlaceholderBackward()) return;
+    if (matchesKey(data, Key.delete) && this.deletePlaceholderForward()) return;
+
     super.handleInput(data);
     this.replaceVisibleImagePaths();
   }
@@ -94,6 +110,55 @@ class ImagePlaceholderEditor extends CustomEditor {
     const result = replaceRawImagePaths(current, this.tracker);
     if (result.changed) this.setText(result.text);
   }
+
+  private deletePlaceholderBackward(): boolean {
+    const internals = this as unknown as MutableEditorInternals;
+    const line = internals.state.lines[internals.state.cursorLine] ?? '';
+    const cursor = internals.state.cursorCol;
+    const span = findPlaceholderSpan(line, cursor, 'backward');
+    if (!span) return false;
+
+    this.deletePlaceholderSpan(span.start, span.end);
+    return true;
+  }
+
+  private deletePlaceholderForward(): boolean {
+    const internals = this as unknown as MutableEditorInternals;
+    const line = internals.state.lines[internals.state.cursorLine] ?? '';
+    const cursor = internals.state.cursorCol;
+    const span = findPlaceholderSpan(line, cursor, 'forward');
+    if (!span) return false;
+
+    this.deletePlaceholderSpan(span.start, span.end);
+    return true;
+  }
+
+  private deletePlaceholderSpan(start: number, end: number): void {
+    const internals = this as unknown as MutableEditorInternals;
+    internals.cancelAutocomplete?.();
+    internals.pushUndoSnapshot?.();
+    internals.exitHistoryBrowsing?.();
+    internals.lastAction = null;
+
+    const lineIndex = internals.state.cursorLine;
+    const line = internals.state.lines[lineIndex] ?? '';
+    internals.state.lines[lineIndex] = line.slice(0, start) + line.slice(end);
+    if (internals.setCursorCol) internals.setCursorCol(start);
+    else internals.state.cursorCol = start;
+
+    this.onChange?.(this.getText());
+    this.invalidate();
+  }
+}
+
+function findPlaceholderSpan(line: string, cursor: number, direction: 'backward' | 'forward'): { start: number; end: number } | undefined {
+  for (const match of line.matchAll(IMAGE_PLACEHOLDER_PATTERN)) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (direction === 'backward' && start < cursor && cursor <= end) return { start, end };
+    if (direction === 'forward' && start <= cursor && cursor < end) return { start, end };
+  }
+  return undefined;
 }
 
 function normalizePath(path: string): string {
