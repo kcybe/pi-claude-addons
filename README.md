@@ -38,6 +38,26 @@ What it does:
 
 The package also registers `/review` as a short alias for PR or target review.
 
+### `/simplify [target]`
+
+Review changed code for cleanup opportunities and apply safe fixes, modeled on Claude Code's current `/simplify` behavior.
+
+```bash
+/simplify
+/simplify src/components/Button.tsx
+/simplify main...feature
+/simplify 123
+```
+
+What it does:
+
+- Reviews the changed-code scope by default, or a file, directory, PR, branch, or ref-range target
+- Applies fixes directly when it finds safe cleanup opportunities
+- Focuses on four cleanup lenses: reuse of existing helpers, simplification, efficiency, and whether the change is at the right abstraction level
+- Avoids correctness/security bug hunting; use `/code-review` for that
+- Skips style-only, formatting-only, naming-only, or speculative refactors
+- Runs targeted validation when practical and summarizes what changed
+
 ### `/cd <path>`
 
 Move the current Pi session to another working directory without restarting Pi.
