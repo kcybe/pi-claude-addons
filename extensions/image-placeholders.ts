@@ -3,8 +3,8 @@ import type { EditorTheme, TUI } from '@earendil-works/pi-tui';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const IMAGE_PATH_PATTERN = /(?:^|\s)(?<path>(?:~|\.|\/)[^\s'"`<>]+\.(?:png|jpe?g|gif|webp))(?=$|\s)/gi;
 const IMAGE_PLACEHOLDER_PATTERN = /\[Image #(\d+)\]/g;
+const BRACKETED_PASTE_PATTERN = /^\x1b\[200~([\s\S]*)\x1b\[201~$/;
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 type ImageContent = {
@@ -17,6 +17,12 @@ type ImageRecord = {
   id: number;
   path: string;
   placeholder: string;
+};
+
+type ImagePathMatch = {
+  start: number;
+  end: number;
+  path: string;
 };
 
 class ImageTracker {
@@ -56,15 +62,37 @@ class ImagePlaceholderEditor extends CustomEditor {
     super(tui, theme, keybindings);
   }
 
+  handleInput(data: string): void {
+    const imagePath = imagePathFromPaste(data);
+    if (imagePath) {
+      this.insertPlaceholder(imagePath);
+      return;
+    }
+
+    super.handleInput(data);
+    this.replaceVisibleImagePaths();
+  }
+
   insertTextAtCursor(text: string): void {
     const imagePath = imagePathFromPaste(text);
     if (!imagePath) {
       super.insertTextAtCursor(text);
+      this.replaceVisibleImagePaths();
       return;
     }
 
-    const record = this.tracker.getOrCreate(imagePath);
+    this.insertPlaceholder(imagePath);
+  }
+
+  private insertPlaceholder(path: string): void {
+    const record = this.tracker.getOrCreate(path);
     super.insertTextAtCursor(record.placeholder);
+  }
+
+  private replaceVisibleImagePaths(): void {
+    const current = this.getText();
+    const result = replaceRawImagePaths(current, this.tracker);
+    if (result.changed) this.setText(result.text);
   }
 }
 
@@ -77,10 +105,71 @@ function normalizePath(path: string): string {
 }
 
 function imagePathFromPaste(text: string): string | undefined {
-  const trimmed = text.trim();
-  if (!isImagePath(trimmed)) return undefined;
-  if (!isReadableFile(trimmed)) return undefined;
-  return trimmed;
+  const bracketed = text.match(BRACKETED_PASTE_PATTERN);
+  const payload = (bracketed?.[1] ?? text).trim();
+  const direct = unescapeShellPath(payload);
+  if (isImagePath(direct) && isReadableFile(direct)) return direct;
+
+  const matches = findImagePathMatches(payload);
+  if (matches.length !== 1) return undefined;
+  const match = matches[0];
+  if (payload.slice(0, match.start).trim() || payload.slice(match.end).trim()) return undefined;
+  return match.path;
+}
+
+function isPathStart(text: string, index: number): boolean {
+  const previous = index === 0 ? ' ' : text[index - 1] ?? ' ';
+  if (!/\s|[([{"']/.test(previous)) return false;
+
+  const current = text[index];
+  const next = text[index + 1];
+  const afterNext = text[index + 2];
+
+  return current === '/' || (current === '~' && next === '/') || (current === '.' && (next === '/' || (next === '.' && afterNext === '/')));
+}
+
+function findImagePathMatches(text: string): ImagePathMatch[] {
+  const matches: ImagePathMatch[] = [];
+
+  for (let i = 0; i < text.length; i++) {
+    if (!isPathStart(text, i)) continue;
+
+    let path = '';
+    let j = i;
+    let escaping = false;
+
+    while (j < text.length) {
+      const char = text[j] ?? '';
+
+      if (escaping) {
+        path += char;
+        escaping = false;
+        j++;
+        continue;
+      }
+
+      if (char === '\\') {
+        escaping = true;
+        j++;
+        continue;
+      }
+
+      if (/\s|['"`<>]/.test(char)) break;
+      path += char;
+      j++;
+    }
+
+    if (isImagePath(path) && isReadableFile(path)) {
+      matches.push({ start: i, end: j, path });
+      i = j - 1;
+    }
+  }
+
+  return matches;
+}
+
+function unescapeShellPath(path: string): string {
+  return path.replace(/\\(.)/g, '$1');
 }
 
 function isImagePath(path: string): boolean {
@@ -152,27 +241,29 @@ function collectPlaceholderImages(text: string, tracker: ImageTracker): ImageCon
 }
 
 function replaceRawImagePaths(text: string, tracker: ImageTracker): { text: string; images: ImageContent[]; changed: boolean } {
+  const matches = findImagePathMatches(text);
+  if (matches.length === 0) return { text, images: [], changed: false };
+
   const images: ImageContent[] = [];
   const seen = new Set<string>();
-  let changed = false;
+  let transformed = '';
+  let cursor = 0;
 
-  const transformed = text.replace(IMAGE_PATH_PATTERN, (match: string, path: string | undefined, offset: number) => {
-    const candidate = path ?? match.trim();
-    if (!isReadableFile(candidate)) return match;
+  for (const match of matches) {
+    const record = tracker.getOrCreate(match.path);
+    transformed += text.slice(cursor, match.start);
+    transformed += record.placeholder;
+    cursor = match.end;
 
-    const record = tracker.getOrCreate(candidate);
     if (!seen.has(record.path)) {
       seen.add(record.path);
       const image = readImage(record);
       if (image) images.push(image);
     }
+  }
 
-    changed = true;
-    const leadingWhitespace = /^\s/.test(match) && offset !== 0 ? match[0] : '';
-    return `${leadingWhitespace}${record.placeholder}`;
-  });
-
-  return { text: transformed, images, changed };
+  transformed += text.slice(cursor);
+  return { text: transformed, images, changed: true };
 }
 
 export default function imagePlaceholdersExtension(pi: ExtensionAPI) {
