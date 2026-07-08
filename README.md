@@ -14,6 +14,30 @@ Restart Pi, or run `/reload` in an existing Pi session after installing/updating
 
 ## Features
 
+### `/code-review [low|medium|high|xhigh|max|ultra] [--fix] [--comment] [target]`
+
+Review the current diff like Claude Code's local `/code-review` command.
+
+```bash
+/code-review
+/code-review high
+/code-review --fix
+/code-review main...feature
+/code-review high --comment 123
+```
+
+What it does:
+
+- Reviews the current branch diff plus staged and unstaged changes by default
+- Accepts file, directory, PR, branch, or ref-range targets
+- Reads repo `REVIEW.md` guidance when present
+- Reports findings with Claude Code-style severity markers: 🔴 Important, 🟡 Nit, 🟣 Pre-existing
+- Runs read-only by default
+- Supports `--fix` for focused safe fixes
+- Supports `--comment` for GitHub PR review comments when `gh` is available, otherwise produces drafts
+
+The package also registers `/review` as a short alias for PR or target review.
+
 ### `/cd <path>`
 
 Move the current Pi session to another working directory without restarting Pi.
