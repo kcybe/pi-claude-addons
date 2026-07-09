@@ -1,6 +1,6 @@
 {
   "name": "pi-claude-addons",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Claude Code-inspired addons for Pi.",
   "keywords": [
     "pi-package",
